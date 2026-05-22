@@ -1,13 +1,16 @@
 import {
   BadRequestException,
   ForbiddenException,
-  HttpException,
-  HttpStatus,
   Injectable,
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { SimpleFinAccountSet } from './interfaces/simplefin.types';
+
+type AccountsRequest = {
+  url: string;
+  headers: Record<string, string>;
+};
 
 @Injectable()
 export class SimpleFinService {
@@ -36,7 +39,10 @@ export class SimpleFinService {
   }
 
   async claimAccessUrl(claimUrl: string): Promise<string> {
-    const response = await fetch(claimUrl, { method: 'POST' });
+    const response = await fetch(claimUrl, {
+      method: 'POST',
+      headers: { 'Content-Length': '0' },
+    });
 
     if (response.status === 403) {
       throw new ForbiddenException(
@@ -68,20 +74,12 @@ export class SimpleFinService {
     accessUrl: string,
     options?: { startDate?: number; endDate?: number; pending?: boolean },
   ): Promise<SimpleFinAccountSet> {
-    const url = new URL(this.accountsEndpoint(accessUrl));
+    const { url, headers } = this.buildAccountsRequest(accessUrl, options);
 
-    if (options?.startDate !== undefined) {
-      url.searchParams.set('start-date', String(Math.floor(options.startDate)));
-    }
-    if (options?.endDate !== undefined) {
-      url.searchParams.set('end-date', String(options.endDate));
-    }
-    if (options?.pending) {
-      url.searchParams.set('pending', '1');
-    }
-    url.searchParams.set('version', '2');
-
-    const response = await fetch(url.toString(), { method: 'GET' });
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+    });
 
     if (response.status === 403) {
       throw new ForbiddenException(
@@ -106,10 +104,41 @@ export class SimpleFinService {
     return (await response.json()) as SimpleFinAccountSet;
   }
 
-  private accountsEndpoint(accessUrl: string): string {
-    const normalized = accessUrl.replace(/\/$/, '');
-    return normalized.endsWith('/accounts')
-      ? normalized
-      : `${normalized}/accounts`;
+  private buildAccountsRequest(
+    accessUrl: string,
+    options?: { startDate?: number; endDate?: number; pending?: boolean },
+  ): AccountsRequest {
+    const u = new URL(accessUrl);
+
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+    };
+
+    if (u.username || u.password) {
+      const auth =
+        'Basic ' +
+        Buffer.from(`${u.username}:${u.password}`).toString('base64');
+      headers.Authorization = auth;
+      u.username = '';
+      u.password = '';
+    }
+
+    const pathname = u.pathname.replace(/\/$/, '');
+    u.pathname = pathname.endsWith('/accounts')
+      ? pathname
+      : `${pathname}/accounts`;
+
+    if (options?.startDate !== undefined) {
+      u.searchParams.set('start-date', String(Math.floor(options.startDate)));
+    }
+    if (options?.endDate !== undefined) {
+      u.searchParams.set('end-date', String(options.endDate));
+    }
+    if (options?.pending) {
+      u.searchParams.set('pending', '1');
+    }
+    u.searchParams.set('version', '2');
+
+    return { url: u.toString(), headers };
   }
 }
