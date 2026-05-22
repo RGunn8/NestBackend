@@ -1,6 +1,7 @@
 import { parse } from 'pg-connection-string';
 import type { DataSourceOptions } from 'typeorm';
 import { SimpleFinConnection } from '../cash_calendar/entities/simplefin-connection.entity';
+import { User } from '../modules/users/entities/user.entity';
 import { databaseHostHint, resolveDatabaseSsl } from './database.ssl';
 
 export function buildTypeOrmConfig(
@@ -22,7 +23,7 @@ export function buildTypeOrmConfig(
     username: parsed.user,
     password: parsed.password,
     database: parsed.database,
-    entities: [SimpleFinConnection],
+    entities: [SimpleFinConnection, User],
     synchronize: nodeEnv !== 'production',
     ssl,
     extra: {

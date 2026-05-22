@@ -1,7 +1,16 @@
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { appConfig } from './config';
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[process] unhandledRejection', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[process] uncaughtException', error);
+});
 
 console.log('[boot] Loading NestJS application...');
 
@@ -21,20 +30,10 @@ async function bootstrap() {
   }
 
   console.log('[boot] Connecting to database (may take a few seconds)...');
-  const connectTimer = setTimeout(() => {
-    console.error(
-      '[boot] Still waiting on database after 30s. If using Railway Postgres, try DATABASE_SSL=false',
-    );
-  }, 30_000);
 
-  let app;
-  try {
-    app = await NestFactory.create(AppModule, {
-      logger: ['error', 'warn', 'log'],
-    });
-  } finally {
-    clearTimeout(connectTimer);
-  }
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: ['error', 'warn', 'log'],
+  });
 
   console.log('[boot] Nest application created');
   app.useGlobalFilters(new HttpExceptionFilter());
@@ -46,8 +45,11 @@ async function bootstrap() {
     allowedHeaders: ['authorization', 'content-type', 'x-request-id'],
   });
 
+  // Railway routes public traffic to process.env.PORT — must bind 0.0.0.0
   await app.listen(port, '0.0.0.0');
-  console.log(`[boot] Listening on 0.0.0.0:${port}`);
+
+  const address = app.getHttpServer().address();
+  console.log('[boot] Server listening', { port, address });
 }
 
 bootstrap().catch((error) => {
