@@ -20,9 +20,23 @@ async function bootstrap() {
     process.exit(1);
   }
 
-  const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn', 'log'],
-  });
+  console.log('[boot] Connecting to database (may take a few seconds)...');
+  const connectTimer = setTimeout(() => {
+    console.error(
+      '[boot] Still waiting on database after 30s. If using Railway Postgres, try DATABASE_SSL=false',
+    );
+  }, 30_000);
+
+  let app;
+  try {
+    app = await NestFactory.create(AppModule, {
+      logger: ['error', 'warn', 'log'],
+    });
+  } finally {
+    clearTimeout(connectTimer);
+  }
+
+  console.log('[boot] Nest application created');
   app.useGlobalFilters(new HttpExceptionFilter());
 
   const { corsOrigin } = appConfig();

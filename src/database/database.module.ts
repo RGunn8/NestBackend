@@ -2,20 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SimpleFinConnection } from '../cash_calendar/entities/simplefin-connection.entity';
-
-function databaseSsl(
-  databaseUrl: string,
-  databaseSslFlag: string | undefined,
-): false | { rejectUnauthorized: boolean } {
-  if (databaseSslFlag === 'false') return false;
-  if (
-    databaseUrl.includes('localhost') ||
-    databaseUrl.includes('127.0.0.1')
-  ) {
-    return false;
-  }
-  return { rejectUnauthorized: false };
-}
+import { databaseHostHint, resolveDatabaseSsl } from './database.ssl';
 
 @Module({
   imports: [
@@ -24,14 +11,28 @@ function databaseSsl(
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const databaseUrl = config.getOrThrow<string>('DATABASE_URL');
+        const ssl = resolveDatabaseSsl(
+          databaseUrl,
+          config.get<string>('DATABASE_SSL'),
+        );
+
+        console.log('[db] TypeORM config', {
+          host: databaseHostHint(databaseUrl),
+          ssl: ssl === false ? 'disabled' : 'enabled',
+          synchronize: config.get<string>('NODE_ENV') !== 'production',
+        });
+
         return {
           type: 'postgres' as const,
           url: databaseUrl,
           entities: [SimpleFinConnection],
           synchronize: config.get<string>('NODE_ENV') !== 'production',
-          ssl: databaseSsl(databaseUrl, config.get<string>('DATABASE_SSL')),
-          retryAttempts: 5,
-          retryDelay: 3000,
+          ssl,
+          retryAttempts: 3,
+          retryDelay: 2000,
+          extra: {
+            connectionTimeoutMillis: 15_000,
+          },
         };
       },
     }),
