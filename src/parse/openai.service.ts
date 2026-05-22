@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { toFile } from 'openai/uploads';
@@ -82,17 +82,25 @@ async function withRetries<T>(
 }
 
 @Injectable()
-export class OpenAiService implements OnModuleInit {
+export class OpenAiService {
   private readonly logger = new Logger(OpenAiService.name);
-  private client!: OpenAI;
-  private visionModel!: string;
-  private transcribeModel!: string;
-  private extractModel!: string;
+  private client: OpenAI | null = null;
+  private visionModel = 'gpt-4o-mini';
+  private transcribeModel = 'whisper-1';
+  private extractModel = 'gpt-4o-mini';
 
   constructor(private readonly config: ConfigService) {}
 
-  onModuleInit(): void {
-    const apiKey = this.config.getOrThrow<string>('OPENAI_API_KEY');
+  private getClient(): OpenAI {
+    if (this.client) return this.client;
+
+    const apiKey = this.config.get<string>('OPENAI_API_KEY');
+    if (!apiKey) {
+      throw new Error(
+        'OPENAI_API_KEY is not configured. Add it in Railway Variables.',
+      );
+    }
+
     this.client = new OpenAI({
       apiKey,
       maxRetries: Number(this.config.get('OPENAI_MAX_RETRIES') ?? 6),
@@ -104,6 +112,8 @@ export class OpenAiService implements OnModuleInit {
       this.config.get('OPENAI_TRANSCRIBE_MODEL') ?? 'whisper-1';
     this.extractModel =
       this.config.get('OPENAI_EXTRACT_MODEL') ?? 'gpt-4o-mini';
+
+    return this.client;
   }
 
   async parseTransactionsFromText(text: string): Promise<ParsedTransaction[]> {
@@ -140,7 +150,7 @@ export class OpenAiService implements OnModuleInit {
       type: mimeType || 'audio/m4a',
     });
     const result = await withRetries(() =>
-      this.client.audio.transcriptions.create({
+      this.getClient().audio.transcriptions.create({
         file,
         model: this.transcribeModel,
       }),
@@ -220,7 +230,7 @@ export class OpenAiService implements OnModuleInit {
       `Return JSON that matches this JSON Schema:\n${JSON.stringify(schemaHint)}`;
 
     const completion = await withRetries(() =>
-      this.client.chat.completions.create({
+      this.getClient().chat.completions.create({
         model: this.extractModel,
         temperature: 0,
         messages: [
@@ -249,7 +259,7 @@ export class OpenAiService implements OnModuleInit {
     model = this.visionModel,
   ): Promise<{ transactions: ParsedTransaction[] }> {
     const completion = await withRetries(() =>
-      this.client.chat.completions.create({
+      this.getClient().chat.completions.create({
         model,
         temperature: 0.1,
         response_format: { type: 'json_object' },
