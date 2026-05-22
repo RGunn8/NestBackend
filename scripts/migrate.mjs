@@ -12,10 +12,13 @@ function sslFromEnv() {
 }
 
 async function main() {
+  console.log('[migrate] Starting database migrations...');
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
+    console.error('[migrate] FATAL: DATABASE_URL is not set');
     throw new Error('DATABASE_URL is required to run migrations');
   }
+  console.log('[migrate] DATABASE_URL is set');
 
   const migrationsDir = [
     path.join(process.cwd(), 'src/database/migrations'),

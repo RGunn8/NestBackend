@@ -30,6 +30,8 @@ function databaseSsl(
           entities: [SimpleFinConnection],
           synchronize: config.get<string>('NODE_ENV') !== 'production',
           ssl: databaseSsl(databaseUrl, config.get<string>('DATABASE_SSL')),
+          retryAttempts: 5,
+          retryDelay: 3000,
         };
       },
     }),

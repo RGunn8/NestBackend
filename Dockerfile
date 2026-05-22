@@ -23,6 +23,8 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/src/database/migrations ./src/database/migrations
 
+RUN chmod +x scripts/start.sh
+
 EXPOSE 3000
 
-CMD ["node", "dist/main.js"]
+CMD ["sh", "scripts/start.sh"]
