@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { toFile } from 'openai/uploads';
+import type { VoiceTransactionDto } from '../modules/voice/dto/voice-transaction.dto';
 
 export type ParsedTransaction = {
   description: string;
@@ -158,6 +159,118 @@ export class OpenAiService {
     return (result.text ?? '').trim();
   }
 
+  async parseVoiceTransaction(
+    transcript: string,
+  ): Promise<VoiceTransactionDto> {
+    const schemaHint = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        description: {
+          type: 'string',
+          description: 'Merchant or label, e.g. Walgreens, McDonald\'s',
+        },
+        amount: {
+          type: 'number',
+          description: 'Positive number in dollars, e.g. 12.5 for $12.50',
+        },
+        category: {
+          type: 'string',
+          description: 'Optional spending/income category',
+        },
+        date: {
+          type: 'string',
+          description:
+            'YYYY-MM-DD if specified or implied (today/yesterday/tomorrow). Omit if unknown.',
+        },
+        type: {
+          type: 'string',
+          enum: ['income', 'expense'],
+          description:
+            'expense for purchases/bills; income for paychecks, deposits, refunds received',
+        },
+      },
+    };
+
+    const system =
+      'You extract a single transaction from casual spoken input. ' +
+      'Return ONLY valid JSON. Do not include markdown.';
+
+    const user =
+      `Transcript: ${JSON.stringify(transcript)}\n\n` +
+      `Assume today is ${new Date().toISOString().slice(0, 10)}.\n` +
+      `Rules:\n` +
+      `- Examples: "Walgreens 12.50" -> expense at Walgreens for 12.50.\n` +
+      `- "I bought McDonald's and the total was 12.80" -> expense, description McDonald's, amount 12.80.\n` +
+      `- amount must be a positive number (never negative).\n` +
+      `- Default type to expense when the user describes a purchase or payment.\n` +
+      `- Use type income only for salary, paycheck, deposit, or money received.\n` +
+      `- Omit fields you cannot infer; do not guess wildly.\n\n` +
+      `Return JSON matching this JSON Schema:\n${JSON.stringify(schemaHint)}`;
+
+    const completion = await withRetries(() =>
+      this.getClient().chat.completions.create({
+        model: this.extractModel,
+        temperature: 0,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
+      }),
+    );
+
+    const content = completion.choices?.[0]?.message?.content?.trim() ?? '';
+    if (!content) return {};
+
+    try {
+      const parsed = JSON.parse(content) as Record<string, unknown>;
+      return this.normalizeVoiceTransaction(parsed);
+    } catch {
+      return {};
+    }
+  }
+
+  private normalizeVoiceTransaction(
+    parsed: Record<string, unknown>,
+  ): VoiceTransactionDto {
+    const description =
+      typeof parsed.description === 'string'
+        ? parsed.description.trim()
+        : undefined;
+
+    const rawAmount = Number(parsed.amount);
+    const amount =
+      Number.isFinite(rawAmount) && rawAmount > 0
+        ? Math.round(rawAmount * 100) / 100
+        : undefined;
+
+    const category =
+      typeof parsed.category === 'string' ? parsed.category.trim() : undefined;
+
+    const date =
+      typeof parsed.date === 'string' &&
+      /^\d{4}-\d{2}-\d{2}$/.test(parsed.date.trim())
+        ? parsed.date.trim()
+        : undefined;
+
+    const type =
+      parsed.type === 'income' || parsed.type === 'expense'
+        ? parsed.type
+        : amount !== undefined
+          ? 'expense'
+          : undefined;
+
+    return {
+      ...(description ? { description } : {}),
+      ...(amount !== undefined ? { amount } : {}),
+      ...(category ? { category } : {}),
+      ...(date ? { date } : {}),
+      ...(type ? { type } : {}),
+    };
+  }
+
+  /** @deprecated Use parseVoiceTransaction for voice-parse endpoint */
   async parseVoiceTranscript(transcript: string): Promise<VoiceParseResult> {
     const schemaHint = {
       type: 'object',

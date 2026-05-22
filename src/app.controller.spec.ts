@@ -24,8 +24,6 @@ describe('AppController', () => {
           useValue: {
             parseTransactionsFromText: jest.fn(),
             parseTransactionsFromImage: jest.fn(),
-            transcribeAudio: jest.fn(),
-            parseVoiceTranscript: jest.fn(),
           },
         },
       ],

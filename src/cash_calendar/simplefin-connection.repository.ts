@@ -21,6 +21,16 @@ export class SimpleFinConnectionRepository {
 
   async upsert(userId: string, accessUrl: string): Promise<void> {
     const encrypted = this.encryption.encrypt(accessUrl);
+    const existing = await this.repo.findOne({ where: { userId } });
+
+    if (existing) {
+      existing.accessUrl = encrypted;
+      existing.lastSyncAt = null;
+      existing.lastSyncError = null;
+      await this.repo.save(existing);
+      return;
+    }
+
     await this.repo.save({
       userId,
       accessUrl: encrypted,

@@ -6,6 +6,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './modules/health/health.module';
 import { ParseModule } from './parse/parse.module';
 import { UsersModule } from './modules/users/users.module';
+import { VoiceModule } from './modules/voice/voice.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     CashCalendarModule,
     ParseModule,
+    VoiceModule,
   ],
   controllers: [AppController],
 })
