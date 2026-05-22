@@ -7,7 +7,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+RUN npm run build && test -f dist/main.js
 
 # Production stage — runtime only
 FROM node:22-alpine AS production
@@ -23,8 +23,9 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/src/database/migrations ./src/database/migrations
 
-RUN chmod +x scripts/start.sh
+RUN chmod +x scripts/start.sh && test -f dist/main.js
 
-EXPOSE 3000
+EXPOSE 8080
 
-CMD ["sh", "scripts/start.sh"]
+# Inline echo ensures something is logged even if start.sh is missing
+CMD ["sh", "-c", "echo '[docker] launching start.sh' && exec sh scripts/start.sh"]
