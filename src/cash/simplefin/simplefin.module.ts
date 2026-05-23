@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersModule } from '../modules/users/users.module';
-import { DatabaseModule } from '../database/database.module';
+import { DatabaseModule } from '../../database/database.module';
+import { UsersModule } from '../users/users.module';
 import { CashAccount } from './entities/cash-account.entity';
 import { CashTransaction } from './entities/cash-transaction.entity';
 import { EncryptionService } from './encryption.service';
@@ -27,4 +27,4 @@ import { SimpleFinSyncRepository } from './simplefin-sync.repository';
   ],
   exports: [SimpleFinOrchestratorService],
 })
-export class CashCalendarModule {}
+export class SimpleFinModule {}

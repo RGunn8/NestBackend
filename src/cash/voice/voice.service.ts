@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { OpenAiService } from '../../parse/openai.service';
+import { OpenAiService } from '../parse/openai.service';
 import { VoiceParseResponseDto } from './dto/voice-transaction.dto';
 
 @Injectable()

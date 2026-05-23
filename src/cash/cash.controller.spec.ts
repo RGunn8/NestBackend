@@ -1,15 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AppController } from './app.controller';
-import { SimpleFinOrchestratorService } from './cash_calendar/simplefin-orchestrator.service';
+import { APP_GUARD } from '@nestjs/core';
+import { CashController } from './cash.controller';
+import { SimpleFinOrchestratorService } from './simplefin/simplefin-orchestrator.service';
 import { OpenAiService } from './parse/openai.service';
 
-describe('AppController', () => {
-  let appController: AppController;
+describe('CashController', () => {
+  let cashController: CashController;
 
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
-      controllers: [AppController],
+      controllers: [CashController],
       providers: [
+        {
+          provide: APP_GUARD,
+          useValue: { canActivate: jest.fn(() => true) },
+        },
         {
           provide: SimpleFinOrchestratorService,
           useValue: {
@@ -29,10 +34,10 @@ describe('AppController', () => {
       ],
     }).compile();
 
-    appController = app.get<AppController>(AppController);
+    cashController = app.get<CashController>(CashController);
   });
 
   it('should be defined', () => {
-    expect(appController).toBeDefined();
+    expect(cashController).toBeDefined();
   });
 });

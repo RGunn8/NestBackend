@@ -1,9 +1,9 @@
 import { parse } from 'pg-connection-string';
 import type { DataSourceOptions } from 'typeorm';
-import { SimpleFinConnection } from '../cash_calendar/entities/simplefin-connection.entity';
-import { CashAccount } from '../cash_calendar/entities/cash-account.entity';
-import { CashTransaction } from '../cash_calendar/entities/cash-transaction.entity';
-import { User } from '../modules/users/entities/user.entity';
+import { SimpleFinConnection } from '../cash/simplefin/entities/simplefin-connection.entity';
+import { CashAccount } from '../cash/simplefin/entities/cash-account.entity';
+import { CashTransaction } from '../cash/simplefin/entities/cash-transaction.entity';
+import { User } from '../cash/users/entities/user.entity';
 import { databaseHostHint, resolveDatabaseSsl } from './database.ssl';
 
 export function buildTypeOrmConfig(

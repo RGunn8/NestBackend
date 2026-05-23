@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { toFile } from 'openai/uploads';
-import type { VoiceTransactionDto } from '../modules/voice/dto/voice-transaction.dto';
+import type { VoiceTransactionDto } from '../voice/dto/voice-transaction.dto';
 
 export type ParsedTransaction = {
   description: string;

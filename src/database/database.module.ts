@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource, type DataSourceOptions } from 'typeorm';
 import { buildTypeOrmConfig } from './database.config';
-import { SimpleFinConnection } from '../cash_calendar/entities/simplefin-connection.entity';
+import { SimpleFinConnection } from '../cash/simplefin/entities/simplefin-connection.entity';
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([

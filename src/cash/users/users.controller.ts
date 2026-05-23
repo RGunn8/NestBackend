@@ -1,7 +1,9 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
 
+@SkipThrottle({ ai: true })
 @Controller('cash/users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

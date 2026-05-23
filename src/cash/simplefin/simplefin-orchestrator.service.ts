@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { QueryFailedError } from 'typeorm';
-import { UsersService } from '../modules/users/users.service';
+import { UsersService } from '../users/users.service';
 import { SimpleFinConnectionRepository } from './simplefin-connection.repository';
 import { SimpleFinMapService } from './simplefin-map.service';
 import {

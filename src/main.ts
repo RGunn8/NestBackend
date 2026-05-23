@@ -36,6 +36,7 @@ async function bootstrap() {
   });
 
   console.log('[boot] Nest application created');
+  app.set('trust proxy', 1);
   app.useGlobalFilters(new HttpExceptionFilter());
 
   const { corsOrigin } = appConfig();

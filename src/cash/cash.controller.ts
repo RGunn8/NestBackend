@@ -11,24 +11,26 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Request } from 'express';
+import { EdgeExceptionFilter } from '../common/filters/edge-exception.filter';
+import { EdgeTimingInterceptor } from '../common/interceptors/edge-timing.interceptor';
+import { edgeError, edgeSuccess } from '../common/utils/edge-response';
+import { OpenAiService } from './parse/openai.service';
 import {
   SimpleFinClaimDto,
   SimpleFinSyncDto,
   SimpleFinUserIdDto,
-} from './cash_calendar/dto/simplefin.dto';
-import { SimpleFinOrchestratorService } from './cash_calendar/simplefin-orchestrator.service';
-import { EdgeExceptionFilter } from './common/filters/edge-exception.filter';
-import { EdgeTimingInterceptor } from './common/interceptors/edge-timing.interceptor';
-import { edgeError, edgeSuccess } from './common/utils/edge-response';
-import { OpenAiService } from './parse/openai.service';
+} from './simplefin/dto/simplefin.dto';
+import { SimpleFinOrchestratorService } from './simplefin/simplefin-orchestrator.service';
 
 type EdgeRequest = Request & { _edgeT0?: number; _edgeRequestId?: string };
 
+@SkipThrottle({ ai: true })
 @Controller('cash')
 @UseFilters(EdgeExceptionFilter)
 @UseInterceptors(EdgeTimingInterceptor)
-export class AppController {
+export class CashController {
   constructor(
     private readonly simpleFin: SimpleFinOrchestratorService,
     private readonly openAi: OpenAiService,
@@ -67,6 +69,7 @@ export class AppController {
 
   @Post('simplefin/sync')
   @HttpCode(200)
+  @SkipThrottle({ default: true, ai: false })
   async simpleFinSync(@Body() body: SimpleFinSyncDto, @Req() req: EdgeRequest) {
     const t0 = req._edgeT0 ?? Date.now();
     const requestId = req._edgeRequestId ?? '';
@@ -99,6 +102,7 @@ export class AppController {
 
   @Post('text/parse')
   @HttpCode(200)
+  @SkipThrottle({ default: true, ai: false })
   async parseText(@Body() body: { text?: string }, @Req() req: EdgeRequest) {
     const t0 = req._edgeT0 ?? Date.now();
     const requestId = req._edgeRequestId ?? '';
@@ -111,6 +115,7 @@ export class AppController {
 
   @Post('image/parse-transactions')
   @HttpCode(200)
+  @SkipThrottle({ default: true, ai: false })
   @UseInterceptors(
     FileInterceptor('image', { limits: { fileSize: 15 * 1024 * 1024 } }),
   )

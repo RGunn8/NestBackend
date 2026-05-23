@@ -2,13 +2,15 @@ import { HttpException, HttpStatus, INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppController } from '../src/app.controller';
-import { SimpleFinOrchestratorService } from '../src/cash_calendar/simplefin-orchestrator.service';
+import { CashController } from '../src/cash/cash.controller';
+import { SimpleFinOrchestratorService } from '../src/cash/simplefin/simplefin-orchestrator.service';
+import { VoiceController } from '../src/cash/voice/voice.controller';
+import { VoiceService } from '../src/cash/voice/voice.service';
 import { EdgeExceptionFilter } from '../src/common/filters/edge-exception.filter';
-import { OpenAiService } from '../src/parse/openai.service';
-import { ParseModule } from '../src/parse/parse.module';
+import { OpenAiService } from '../src/cash/parse/openai.service';
+import { ParseModule } from '../src/cash/parse/parse.module';
 
-describe('Cashflow API (e2e)', () => {
+describe('Cash API (e2e)', () => {
   let app: INestApplication<App>;
 
   const mockOpenAi = {
@@ -19,10 +21,10 @@ describe('Cashflow API (e2e)', () => {
       { description: 'Groceries', amount: -32.1, date: '2026-05-01' },
     ]),
     transcribeAudio: jest.fn().mockResolvedValue('spent twelve dollars at cafe'),
-    parseVoiceTranscript: jest.fn().mockResolvedValue({
-      transcript: 'spent twelve dollars at cafe',
-      intent: 'transaction',
-      transaction: { description: 'cafe', amount: -12 },
+    parseVoiceTransaction: jest.fn().mockResolvedValue({
+      description: 'cafe',
+      amount: 12,
+      type: 'expense',
     }),
   };
 
@@ -44,8 +46,9 @@ describe('Cashflow API (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [ParseModule],
-      controllers: [AppController],
+      controllers: [CashController, VoiceController],
       providers: [
+        VoiceService,
         {
           provide: SimpleFinOrchestratorService,
           useValue: mockSimpleFin,
@@ -123,7 +126,7 @@ describe('Cashflow API (e2e)', () => {
       })
       .expect(200);
 
-    expect(res.body.intent).toBe('transaction');
+    expect(res.body.type).toBe('expense');
     expect(res.body.transcript).toContain('cafe');
     expect(res.body.requestId).toBeDefined();
   });

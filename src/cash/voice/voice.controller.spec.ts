@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { APP_GUARD } from '@nestjs/core';
 import { VoiceController } from './voice.controller';
 import { VoiceService } from './voice.service';
 
@@ -9,6 +10,10 @@ describe('VoiceController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VoiceController],
       providers: [
+        {
+          provide: APP_GUARD,
+          useValue: { canActivate: jest.fn(() => true) },
+        },
         {
           provide: VoiceService,
           useValue: {

@@ -8,6 +8,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { EdgeExceptionFilter } from '../../common/filters/edge-exception.filter';
 import { EdgeTimingInterceptor } from '../../common/interceptors/edge-timing.interceptor';
@@ -18,6 +19,7 @@ type EdgeRequest = Request & { _edgeT0?: number; _edgeRequestId?: string };
 
 const AUDIO_LIMIT_BYTES = 15 * 1024 * 1024;
 
+@SkipThrottle({ default: true })
 @Controller('cash')
 @UseFilters(EdgeExceptionFilter)
 @UseInterceptors(EdgeTimingInterceptor)
